@@ -1,0 +1,70 @@
+version: 2.1
+
+jobs:
+  # Backend build, test, and SonarQube analysis job
+  backend:
+    docker:
+      - image: cimg/node:16.17  # Use a Node.js image for your backend
+    working_directory: ~/backend  # Ensure we are in the backend folder
+    steps:
+      - checkout  # Checkout the source code
+      - run:
+          name: Install dependencies for Backend
+          command: |
+            cd backend
+            npm install  # Or use yarn if your project uses it
+      - run:
+          name: Run tests for Backend
+          command: |
+            cd backend
+            npm test  # Run tests for the backend (replace with your test command)
+      - run:
+          name: SonarQube analysis for Backend
+          command: |
+            cd backend
+            sonar-scanner  # Run SonarQube analysis for backend
+
+  # Frontend build, test, and SonarQube analysis job
+  frontend:
+    docker:
+      - image: cimg/node:16.17  # Use a Node.js image for the frontend (or React-specific image)
+    working_directory: ~/frontend  # Ensure we are in the frontend folder
+    steps:
+      - checkout  # Checkout the source code
+      - run:
+          name: Install dependencies for Frontend
+          command: |
+            cd frontend
+            npm install  # Or yarn if you are using it
+      - run:
+          name: Run tests for Frontend
+          command: |
+            cd frontend
+            npm test  # Replace with your frontend testing command (e.g., jest)
+      - run:
+          name: SonarQube analysis for Frontend
+          command: |
+            cd frontend
+            sonar-scanner  # Run SonarQube analysis for frontend
+
+  # Optionally, you can have a deploy job to deploy the app
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Deploy app
+          command: |
+            echo "Deploying application..."  # Replace with your deployment script
+
+workflows:
+  version: 2
+  build_and_analyze:
+    jobs:
+      - backend
+      - frontend:
+          requires:
+            - backend
+      - deploy:
+          requires:
+            - frontend  # Optional: Trigger deploy after both frontend and backend jobs
