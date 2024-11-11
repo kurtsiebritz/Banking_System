@@ -6,6 +6,8 @@ import dashboard from "./routes/dashboard.mjs";
 import users from "./routes/user.mjs";
 import payments from "./routes/payments.mjs";
 import { initializeRoles } from "./roles/initialize-roles.mjs";
+import employeeDashboard from "./routes/employeeDashboard.mjs";
+import transactionVerify from "./routes/transactionVerify.mjs"
 
 // Set the port
 const PORT = 3000;
@@ -34,7 +36,9 @@ initializeRoles().then(() => {
     // Set up routes
     app.use('/user', users);
     app.use("/dashboard", dashboard);
+    app.use("/employeeDashboard", employeeDashboard)
     app.use("/payments", payments);
+    app.use("/transactionVerify",transactionVerify)
 
     // Create HTTPS server
     const server = https.createServer(options, app);

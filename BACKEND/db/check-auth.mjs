@@ -13,8 +13,11 @@ export const verifyToken = (req, res, next) => {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET || "this_secret_should_be_longer_than_it_is"); // Use environment variable for secret
 
         // Attach user info to the request object for further processing
-        req.user = { id: decodedToken.userId };
-
+        req.user = { 
+            id: decodedToken.userId, 
+            role: decodedToken.role, // Attach the role to req.user
+        };
+        
         // Move to the next middleware or route handler
         next();
     } catch (error) {

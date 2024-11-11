@@ -2,6 +2,7 @@ import express from "express";
 import db from "../db/conn.mjs";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { ObjectId } from 'mongodb';
 import ExpressBrute from "express-brute";
 import dotenv from "dotenv";
 
@@ -84,11 +85,14 @@ router.post("/signup", bruteforce.prevent, async (req, res) => {
 
 // Login route
 router.post("/login", bruteforce.prevent, async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, accountNumber } = req.body;
 
     try {
         const collection = await db.collection("users");
-        const user = await collection.findOne({ username });
+        const rolesCollection = await db.collection("roles");
+
+        // Find user by both username and accountNumber
+        const user = await collection.findOne({ username, accountNumber });
 
         if (!user) {
             return res.status(401).json({ message: "Authentication failed: Invalid credentials." });
@@ -101,10 +105,10 @@ router.post("/login", bruteforce.prevent, async (req, res) => {
             return res.status(401).json({ message: "Authentication failed: Invalid credentials." });
         }
 
-        // Determine the role of the user and assign corresponding permissions
-        const Role = user.role; // User's role (either "admin" or "user")
-        console.log("Users Role: " + Role);
-        const userPermissions = roles[Role]?.permissions || []; // Assign permissions based on role
+        // Retrieve the role for the user and assign corresponding permissions
+        const role = await rolesCollection.findOne({ _id: new ObjectId(user.roleId) });
+        const roleName = role ? role.name : null;
+        const userPermissions = role ? roles[role.name]?.permissions || [] : []; // Assign permissions based on role
 
         // Generate JWT token with user ID, role, permissions, and other info
         const token = jwt.sign(
@@ -112,19 +116,21 @@ router.post("/login", bruteforce.prevent, async (req, res) => {
                 userId: user._id, 
                 username: user.username, 
                 accountNumber: user.accountNumber, 
-                role: user.role, 
-                permissions: userPermissions // Attach role-based permissions
+                role: roleName, 
+                permissions: userPermissions 
             },
-            process.env.JWT_SECRET || "this_secret_should_be_longer_than_it_is", // Use a more secure secret in production
+            process.env.JWT_SECRET || "this_secret_should_be_longer_than_it_is",
             { expiresIn: "1h" }
         );
+
+        console.log("Role: " + roleName);
 
         res.status(200).json({
             message: "Authentication successful",
             token,
             username: user.username,
             accountNumber: user.accountNumber,
-            role: user.role,
+            role: roleName,
             permissions: userPermissions, // Optionally send permissions to the frontend
         });
     } catch (error) {
@@ -132,5 +138,6 @@ router.post("/login", bruteforce.prevent, async (req, res) => {
         res.status(500).json({ message: "Login failed due to server error." });
     }
 });
+
 
 export default router;
